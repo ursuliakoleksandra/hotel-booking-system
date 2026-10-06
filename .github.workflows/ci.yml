@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Збірка, лінт і тести: окреме завдання на кожен сервіс, паралельно
+  build-test:
+    name: Збірка і тести (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [booking-service, hotel-management, user-service]
+    steps:
+      - name: Отримати код
+        uses: actions/checkout@v4
+
+      - name: Налаштувати JDK 17 з кешем Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Статичний аналіз (Checkstyle)
+        run: mvn -B -ntp -pl ${{ matrix.service }} checkstyle:check
+
+      - name: Build
+        run: mvn -B -ntp -pl ${{ matrix.service }} package -DskipTests
+
+      - name: Test
+        run: mvn -B -ntp -pl ${{ matrix.service }} test
+
+      - name: Зберегти звіти тестів
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/surefire-reports
+          if-no-files-found: ignore
+
+  # Збірка образів і сканування на вразливості (тільки після успіху всіх build-test)
+  docker-build:
+    name: Образ і сканування (${{ matrix.service }})
+    needs: build-test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [booking-service, hotel-management, user-service]
+    steps:
+      - name: Отримати код
+        uses: actions/checkout@v4
+
+      - name: Налаштувати Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Зібрати образ (без публікації)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.service }}/Dockerfile
+          load: true
+          push: false
+          tags: ${{ matrix.service }}:ci
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Сканування образу Trivy (блокуюче)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ matrix.service }}:ci
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  # Публікація в ghcr.io: тільки для push (не для Pull Request)
+  publish:
+    name: Публікація (${{ matrix.service }})
+    needs: docker-build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [booking-service, hotel-management, user-service]
+    steps:
+      - name: Отримати код
+        uses: actions/checkout@v4
+
+      - name: Ім'я образу малими літерами
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/${{ matrix.service }}" >> "$GITHUB_ENV"
+
+      - name: Налаштувати Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Вхід у ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Теги образу
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,format=long,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Зібрати і опублікувати образ
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.service }}
