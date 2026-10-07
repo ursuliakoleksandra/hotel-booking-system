@@ -80,6 +80,8 @@ jobs:
         with:
           image-ref: ${{ matrix.service }}:ci
           format: table
+          scanners: vuln
+          vuln-type: os
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
