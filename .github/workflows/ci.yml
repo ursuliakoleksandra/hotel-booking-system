@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  actions: write
+  packages: write
 
 jobs:
   # Збірка, лінт і тести: окреме завдання на кожен сервіс, паралельно
@@ -71,7 +73,7 @@ jobs:
           push: false
           tags: ${{ matrix.service }}:ci
           cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }},ignore-error=true
 
       - name: Сканування образу Trivy (блокуюче)
         uses: aquasecurity/trivy-action@0.28.0
@@ -88,9 +90,6 @@ jobs:
     needs: docker-build
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -130,3 +129,19 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.service }}
+
+  # Один статус для Branch Protection (required status checks)
+  ci-success:
+    name: CI Success
+    if: always()
+    needs: [build-test, docker-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Перевірити результат пайплайну
+        run: |
+          if [ "${{ needs.build-test.result }}" != "success" ] || \
+             [ "${{ needs.docker-build.result }}" != "success" ]; then
+            echo "Пайплайн не пройшов: build-test=${{ needs.build-test.result }}, docker-build=${{ needs.docker-build.result }}"
+            exit 1
+          fi
+          echo "Усі обов'язкові перевірки успішні"
