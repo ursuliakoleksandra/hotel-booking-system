@@ -1,0 +1,15 @@
+# DVO-L3-7F2A91
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: hotel-booking
+  labels:
+    app: postgres
+    app.kubernetes.io/part-of: hotel-booking-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
