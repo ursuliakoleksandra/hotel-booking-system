@@ -1,0 +1,19 @@
+{{- $ui := include "hotel-booking.componentName" (dict "root" . "component" "ui") -}}
+Реліз {{ .Release.Name }} встановлено в namespace {{ .Release.Namespace }} (версія чарта {{ .Chart.Version }}, застосунок {{ .Chart.AppVersion }}).
+
+Дочекайтеся готовності подів:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+Як відкрити застосунок:
+{{- if .Values.ingress.enabled }}
+  1. Додайте у файл hosts рядок: 127.0.0.1 {{ .Values.ingress.host }}
+  2. Прокиньте порт Ingress-контролера:
+       kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+  3. Відкрийте в браузері: http://{{ .Values.ingress.host }}:8080/
+{{- else }}
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ $ui }} 8088:{{ .Values.ui.service.port }}
+  Відкрийте в браузері: http://localhost:8088/
+{{- end }}
+
+Перевірка релізу:
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}

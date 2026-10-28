@@ -1,0 +1,12 @@
+{{- $pg := include "hotel-booking.componentName" (dict "root" . "component" "postgres") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $pg }}-init
+  labels:
+    {{- include "hotel-booking.labels" (dict "root" . "component" "postgres") | nindent 4 }}
+data:
+  init.sql: |
+    {{- range $name, $svc := .Values.services }}
+    CREATE DATABASE {{ $svc.database }};
+    {{- end }}

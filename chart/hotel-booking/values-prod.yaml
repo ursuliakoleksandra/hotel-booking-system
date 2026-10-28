@@ -1,0 +1,45 @@
+# Середовище prod: 2 репліки, більші ліміти ресурсів, образи 1.1.0, Ingress увімкнено.
+# Пароль БД тут не зберігається: передайте його через --set secrets.dbPassword=...
+config:
+  APP_ENV: "prod"
+  LOGGING_LEVEL_ROOT: "WARN"
+  SPRING_JPA_SHOW_SQL: "false"
+
+image:
+  tag: "1.1.0"
+
+services:
+  user-service:
+    replicas: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 768Mi
+  hotel-management:
+    replicas: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 768Mi
+  booking-service:
+    replicas: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 768Mi
+
+ui:
+  replicas: 2
+
+ingress:
+  enabled: true
+  host: hotel.local
