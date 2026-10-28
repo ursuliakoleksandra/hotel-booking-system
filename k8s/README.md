@@ -1,14 +1,16 @@
 # Лабораторна робота №3. Розгортання hotel-booking-system у Kubernetes
 
 Застосунок складається з трьох мікросервісів на Spring Boot (Java 17, Maven):
-`user-service` (порт 8082), `hotel-management` (порт 8081), `booking-service` (порт 8080).
+`user-service` (порт 8082), `hotel-management` (порт 8081), `booking-service` (порт 8080),
+та вебінтерфейсу `ui` (nginx, статичні файли з `ui/html`).
 Стан зберігається в PostgreSQL (по одній базі на сервіс), події бронювань передаються через Kafka.
 Усі об'єкти Kubernetes створюються в namespace `hotel-booking`.
 
 ## Архітектура в кластері
 
 ```
-Ingress (hotel.local) ──► user-service ───────┐
+Ingress (hotel.local) ──► ui (nginx, проксі /api/v1/*)
+                      ──► user-service ───────┐
                       ──► hotel-management ───┼──► postgres (PVC) : userdb / hoteldb / bookingdb
                       ──► booking-service ────┘
                               │  └─► hotel-management (Feign, http://hotel-management:8081)
@@ -30,7 +32,8 @@ Ingress (hotel.local) ──► user-service ───────┐
 | `<сервіс>-service.yaml` | Service типу ClusterIP |
 | `postgres-*.yaml` | ConfigMap (налаштування і init-скрипт), Secret, PVC 1Gi, Deployment, Service PostgreSQL |
 | `kafka-*.yaml` | ConfigMap, PVC 1Gi, Deployment, Service Kafka (KRaft, один вузол) |
-| `ingress.yaml` | Ingress (nginx), хост `hotel.local` |
+| `ui-*.yaml` | Вебінтерфейс (nginx): ConfigMap з конфігурацією проксі, Deployment (2 репліки), Service |
+| `ingress.yaml` | Ingress (nginx), хост `hotel.local`: `/` веде на UI, `/api/v1/*` на сервіси |
 
 Скрипти збірки образів лежать у `scripts/`. Звіт з командами для пунктів 5–7 — `docs/lab3-report.md`.
 
@@ -56,7 +59,7 @@ kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.
 bash scripts/build-and-load-images.sh
 ```
 
-Для Windows PowerShell: `powershell -ExecutionPolicy Bypass -File .\scripts\build-and-load-images.ps1`.
+Скрипт збирає образи трьох сервісів і UI (`hotel-booking-system/ui`). Для Windows PowerShell: `powershell -ExecutionPolicy Bypass -File .\scripts\build-and-load-images.ps1`.
 
 3. Застосувати всі маніфести однією командою:
 
@@ -75,13 +78,18 @@ kubectl rollout status deployment/booking-service -n hotel-booking
 ```
 
 5. Доступ із хоста. Додати у файл hosts рядок `127.0.0.1 hotel.local`
-(Windows: `C:\Windows\System32\drivers\etc\hosts`, Linux/macOS: `/etc/hosts`; потрібні права адміністратора)
-і в окремому терміналі запустити `minikube tunnel`.
+   (Windows: `C:\Windows\System32\drivers\etc\hosts`, Linux/macOS: `/etc/hosts`; потрібні права адміністратора)
+   і в окремому терміналі запустити `minikube tunnel`.
 
 Без правки hosts: `kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80`, після чого
 додавати до запитів заголовок `Host: hotel.local` і звертатися до `localhost:8080`.
 
 ## Перевірка роботи
+
+Вебінтерфейс відкривається за адресою http://hotel.local:8080/ (через `port-forward`, як описано вище).
+У ньому можна додавати готелі, користувачів і бронювання, а стрічка в шапці показує стан сервісів у реальному часі.
+
+Те саме через `curl`:
 
 ```
 curl http://hotel.local/api/v1/hotels
@@ -165,3 +173,4 @@ kubectl port-forward svc/booking-service 8080:8080 -n hotel-booking
 ```
 kubectl delete namespace hotel-booking
 ```
+

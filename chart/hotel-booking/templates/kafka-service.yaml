@@ -1,0 +1,15 @@
+{{- $kafka := include "hotel-booking.componentName" (dict "root" . "component" "kafka") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $kafka }}
+  labels:
+    {{- include "hotel-booking.labels" (dict "root" . "component" "kafka") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "hotel-booking.selectorLabels" (dict "root" . "component" "kafka") | nindent 4 }}
+  ports:
+    - name: kafka
+      port: {{ .Values.kafka.port }}
+      targetPort: kafka

@@ -1,11 +1,8 @@
-# DVO-L3-7F2A91
-# Збірка образів 1.0.0 та 1.1.0 і завантаження їх у minikube (тег latest не використовується).
-# Запуск з кореня репозиторію: powershell -ExecutionPolicy Bypass -File .\scripts\build-and-load-images.ps1
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
 
-$services = @("user-service", "hotel-management", "booking-service")
+$services = @("user-service", "hotel-management", "booking-service", "ui")
 $versions = @("1.0.0", "1.1.0")
 
 foreach ($svc in $services) {

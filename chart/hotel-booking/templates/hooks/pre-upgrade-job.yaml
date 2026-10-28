@@ -1,0 +1,28 @@
+{{- $pg := include "hotel-booking.componentName" (dict "root" . "component" "postgres") }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "hotel-booking.fullname" . }}-preupgrade-check
+  labels:
+    {{- include "hotel-booking.labels" (dict "root" . "component" "preupgrade-check") | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        {{- include "hotel-booking.selectorLabels" (dict "root" . "component" "preupgrade-check") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: check
+          image: {{ include "hotel-booking.imageRef" .Values.postgres.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - pg_isready -h {{ $pg }} -p {{ .Values.postgres.port }} -U {{ .Values.postgres.user }} && echo "pre-upgrade check passed, PostgreSQL is reachable"

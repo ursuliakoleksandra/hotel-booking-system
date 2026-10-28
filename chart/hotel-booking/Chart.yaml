@@ -1,0 +1,13 @@
+apiVersion: v2
+name: hotel-booking
+description: Helm-чарт застосунку hotel-booking-system (user-service, hotel-management, booking-service, UI, PostgreSQL, Kafka)
+type: application
+# version: версія самого чарта (пакування). Збільшується, коли змінюються шаблони або значення чарта.
+version: 0.1.0
+# appVersion: версія застосунку (теги образів). Збільшується, коли виходить нова версія коду.
+appVersion: "1.0.0"
+keywords:
+  - hotel-booking
+  - spring-boot
+  - kafka
+  - postgresql
