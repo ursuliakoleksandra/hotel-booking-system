@@ -1,0 +1,62 @@
+# DVO-L3-7F2A91
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: hotel-booking
+  labels:
+    app: kafka
+    app.kubernetes.io/part-of: hotel-booking-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+        app.kubernetes.io/part-of: hotel-booking-system
+    spec:
+      # Без цього Kubernetes додає змінні KAFKA_PORT=tcp://..., які образ kafka сприймає як налаштування брокера
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: kafka
+          image: apache/kafka:3.7.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9092
+              name: kafka
+          envFrom:
+            - configMapRef:
+                name: kafka-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+          readinessProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            failureThreshold: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: kafka-data

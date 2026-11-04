@@ -1,0 +1,18 @@
+# DVO-L3-7F2A91
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: booking-service-config
+  namespace: hotel-booking
+  labels:
+    app: booking-service
+    app.kubernetes.io/part-of: hotel-booking-system
+data:
+  APP_ENV: "k8s"
+  LOGGING_LEVEL_ROOT: "INFO"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/bookingdb"
+  SPRING_DATASOURCE_USERNAME: "hotel"
+  SPRING_H2_CONSOLE_ENABLED: "false"
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+  HOTEL_SERVICE_URL: "http://hotel-management:8081/api/v1/hotels"
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"

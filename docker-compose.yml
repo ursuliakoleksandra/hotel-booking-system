@@ -1,6 +1,7 @@
+# DVO-L3-7F2A91
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.4.0
     ports:
       - "2181:2181"
     environment:

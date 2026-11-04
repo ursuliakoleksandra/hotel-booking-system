@@ -1,0 +1,36 @@
+# DVO-L3-7F2A91
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hotel-booking-ingress
+  namespace: hotel-booking
+  labels:
+    app: hotel-booking
+    app.kubernetes.io/part-of: hotel-booking-system
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: hotel.local
+      http:
+        paths:
+          - path: /api/v1/users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8082
+          - path: /api/v1/hotels
+            pathType: Prefix
+            backend:
+              service:
+                name: hotel-management
+                port:
+                  number: 8081
+          - path: /api/v1/bookings
+            pathType: Prefix
+            backend:
+              service:
+                name: booking-service
+                port:
+                  number: 8080
