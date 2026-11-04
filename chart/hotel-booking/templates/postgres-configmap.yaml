@@ -1,0 +1,11 @@
+{{- $pg := include "hotel-booking.componentName" (dict "root" . "component" "postgres") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $pg }}-config
+  labels:
+    {{- include "hotel-booking.labels" (dict "root" . "component" "postgres") | nindent 4 }}
+data:
+  POSTGRES_USER: {{ .Values.postgres.user | quote }}
+  POSTGRES_DB: {{ .Values.postgres.database | quote }}
+  PGDATA: "/var/lib/postgresql/data/pgdata"

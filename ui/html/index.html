@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hotel Booking</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2310252B'/%3E%3Ccircle cx='11' cy='16' r='4' fill='none' stroke='%23C99A4B' stroke-width='3'/%3E%3Cpath d='M15 16h12M23 16v5M27 16v4' stroke='%23C99A4B' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="brand">
+      <h1>Hotel Booking</h1>
+      <p>Готелі, користувачі та бронювання. Кожен запис зберігається в спільній базі, тож його бачать усі репліки.</p>
+    </div>
+    <section class="tape" aria-label="Стан сервісів" id="tape"></section>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Розділи">
+    <button role="tab" id="tab-hotels" aria-controls="view-hotels" aria-selected="true" data-view="hotels">Готелі <span class="count" id="count-hotels">0</span></button>
+    <button role="tab" id="tab-users" aria-controls="view-users" aria-selected="false" data-view="users" tabindex="-1">Користувачі <span class="count" id="count-users">0</span></button>
+    <button role="tab" id="tab-bookings" aria-controls="view-bookings" aria-selected="false" data-view="bookings" tabindex="-1">Бронювання <span class="count" id="count-bookings">0</span></button>
+  </nav>
+
+  <main>
+    <section class="view" id="view-hotels" role="tabpanel" aria-labelledby="tab-hotels">
+      <div class="ledger">
+        <h2>Готелі</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">ID</th><th scope="col">Назва</th><th scope="col">Адреса</th><th scope="col">Рейтинг</th></tr></thead>
+            <tbody id="rows-hotels"></tbody>
+          </table>
+        </div>
+        <p class="empty" id="empty-hotels" hidden>Готелів ще немає. Додайте перший у формі поруч.</p>
+      </div>
+      <form class="entry" id="form-hotels" novalidate>
+        <h2>Додати готель</h2>
+        <label>Назва<input name="name" autocomplete="off" required></label>
+        <label>Адреса<input name="address" autocomplete="off" required></label>
+        <label>Рейтинг
+          <select name="rating">
+            <option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option>
+          </select>
+        </label>
+        <p class="msg" role="alert" hidden></p>
+        <button type="submit">Додати готель</button>
+      </form>
+    </section>
+
+    <section class="view" id="view-users" role="tabpanel" aria-labelledby="tab-users" hidden>
+      <div class="ledger">
+        <h2>Користувачі</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">ID</th><th scope="col">Повне ім'я</th><th scope="col">Email</th></tr></thead>
+            <tbody id="rows-users"></tbody>
+          </table>
+        </div>
+        <p class="empty" id="empty-users" hidden>Користувачів ще немає. Додайте першого у формі поруч.</p>
+      </div>
+      <form class="entry" id="form-users" novalidate>
+        <h2>Додати користувача</h2>
+        <label>Повне ім'я<input name="fullName" autocomplete="off" required></label>
+        <label>Email<input name="email" type="email" autocomplete="off" required></label>
+        <p class="msg" role="alert" hidden></p>
+        <button type="submit">Додати користувача</button>
+      </form>
+    </section>
+
+    <section class="view" id="view-bookings" role="tabpanel" aria-labelledby="tab-bookings" hidden>
+      <div class="ledger">
+        <h2>Бронювання</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">ID</th><th scope="col">Гість</th><th scope="col">Готель</th><th scope="col">Заїзд</th><th scope="col">Виїзд</th><th scope="col">Ночей</th></tr></thead>
+            <tbody id="rows-bookings"></tbody>
+          </table>
+        </div>
+        <p class="empty" id="empty-bookings" hidden>Бронювань ще немає. Створіть перше у формі поруч.</p>
+      </div>
+      <form class="entry" id="form-bookings" novalidate>
+        <h2>Створити бронювання</h2>
+        <label>Користувач<select name="userId" id="select-users"></select></label>
+        <label>Готель<select name="hotelId" id="select-hotels"></select></label>
+        <label>Дата заїзду<input name="checkIn" type="date" required></label>
+        <label>Дата виїзду<input name="checkOut" type="date" required></label>
+        <p class="hint" id="hint-bookings" hidden>Щоб створити бронювання, спершу додайте користувача і готель.</p>
+        <p class="msg" role="alert" hidden></p>
+        <button type="submit" id="submit-bookings">Створити бронювання</button>
+      </form>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

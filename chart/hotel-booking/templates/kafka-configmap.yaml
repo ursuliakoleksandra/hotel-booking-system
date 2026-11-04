@@ -1,0 +1,22 @@
+{{- $kafka := include "hotel-booking.componentName" (dict "root" . "component" "kafka") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $kafka }}-config
+  labels:
+    {{- include "hotel-booking.labels" (dict "root" . "component" "kafka") | nindent 4 }}
+data:
+  KAFKA_NODE_ID: "1"
+  KAFKA_PROCESS_ROLES: "broker,controller"
+  KAFKA_LISTENERS: {{ printf "PLAINTEXT://:%v,CONTROLLER://:9093" .Values.kafka.port | quote }}
+  KAFKA_ADVERTISED_LISTENERS: {{ printf "PLAINTEXT://%s:%v" $kafka .Values.kafka.port | quote }}
+  KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+  KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+  KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+  KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+  KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+  KAFKA_HEAP_OPTS: {{ .Values.kafka.heapOpts | quote }}

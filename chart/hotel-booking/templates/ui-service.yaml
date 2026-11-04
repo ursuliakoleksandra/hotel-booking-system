@@ -1,0 +1,15 @@
+{{- $ui := include "hotel-booking.componentName" (dict "root" . "component" "ui") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $ui }}
+  labels:
+    {{- include "hotel-booking.labels" (dict "root" . "component" "ui") | nindent 4 }}
+spec:
+  type: {{ .Values.ui.service.type }}
+  selector:
+    {{- include "hotel-booking.selectorLabels" (dict "root" . "component" "ui") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.ui.service.port }}
+      targetPort: http

@@ -1,0 +1,18 @@
+{{- range $name, $svc := .Values.services }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hotel-booking.componentName" (dict "root" $ "component" $name) }}-config
+  labels:
+    {{- include "hotel-booking.labels" (dict "root" $ "component" $name) | nindent 4 }}
+data:
+  {{- range $key, $value := $.Values.config }}
+  {{ $key }}: {{ tpl (toString $value) $ | quote }}
+  {{- end }}
+  {{- range $key, $value := $svc.config }}
+  {{ $key }}: {{ tpl (toString $value) $ | quote }}
+  {{- end }}
+  SPRING_DATASOURCE_URL: {{ printf "jdbc:postgresql://%s:%v/%s" (include "hotel-booking.componentName" (dict "root" $ "component" "postgres")) $.Values.postgres.port $svc.database | quote }}
+  SPRING_DATASOURCE_USERNAME: {{ $.Values.postgres.user | quote }}
+{{- end }}

@@ -1,0 +1,157 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+revisionHistoryLimit: 5
+
+# Параметри JVM для Spring-сервісів (частка пам'яті контейнера під heap)
+javaOpts: "-XX:MaxRAMPercentage=55.0"
+
+# Спільні змінні оточення для трьох Spring-сервісів (ConfigMap).
+# Значення можуть містити шаблони Helm, вони обробляються функцією tpl.
+config:
+  APP_ENV: "dev"
+  LOGGING_LEVEL_ROOT: "INFO"
+  SPRING_JPA_SHOW_SQL: "true"
+  SPRING_H2_CONSOLE_ENABLED: "false"
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+
+# Чутливі параметри (Secret). Це демонстраційне значення, а не пароль реальної системи.
+# Для іншого пароля: --set secrets.dbPassword=... (пароль PostgreSQL задається лише при першому створенні тому).
+secrets:
+  dbPassword: ""
+
+# Три Spring Boot сервіси. Ключ є частиною імені об'єктів: <реліз>-<ключ>.
+services:
+  user-service:
+    image:
+      repository: hotel-booking-system/user-service
+      tag: ""            # порожній: береться image.tag
+    replicas: 1
+    port: 8082           # порт контейнера
+    apiPath: /api/v1/users
+    database: userdb
+    service:
+      type: ClusterIP
+      port: 8082
+    resources:
+      requests:
+        cpu: 50m
+        memory: 192Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    config: {}           # додаткові змінні оточення цього сервісу
+
+  hotel-management:
+    image:
+      repository: hotel-booking-system/hotel-management
+      tag: ""
+    replicas: 1
+    port: 8081
+    apiPath: /api/v1/hotels
+    database: hoteldb
+    service:
+      type: ClusterIP
+      port: 8081
+    resources:
+      requests:
+        cpu: 50m
+        memory: 192Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    config: {}
+
+  booking-service:
+    image:
+      repository: hotel-booking-system/booking-service
+      tag: ""
+    replicas: 1
+    port: 8080
+    apiPath: /api/v1/bookings
+    database: bookingdb
+    service:
+      type: ClusterIP
+      port: 8080
+    resources:
+      requests:
+        cpu: 50m
+        memory: 192Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    config:
+      HOTEL_SERVICE_URL: 'http://{{ include "hotel-booking.componentName" (dict "root" . "component" "hotel-management") }}:{{ (index .Values.services "hotel-management").service.port }}/api/v1/hotels'
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: '{{ include "hotel-booking.componentName" (dict "root" . "component" "kafka") }}:{{ .Values.kafka.port }}'
+
+# Вебінтерфейс (nginx зі статичними файлами; /api/v1/* проксуються на сервіси)
+ui:
+  image:
+    repository: hotel-booking-system/ui
+    tag: ""
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+# PostgreSQL: одна база на сервіс (імена баз беруться з services.*.database)
+postgres:
+  image:
+    repository: postgres
+    tag: 16-alpine
+  replicas: 1
+  port: 5432
+  user: hotel
+  database: hotel
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi
+
+kafka:
+  image:
+    repository: apache/kafka
+    tag: 3.7.0
+  replicas: 1
+  port: 9092
+  heapOpts: "-Xms256m -Xmx512m"
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+ingress:
+  enabled: false
+  className: nginx
+  host: hotel.local
+  annotations: {}
+
+testImage:
+  repository: busybox
+  tag: "1.36"

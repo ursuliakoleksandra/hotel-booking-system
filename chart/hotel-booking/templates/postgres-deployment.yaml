@@ -1,0 +1,65 @@
+{{- $pg := include "hotel-booking.componentName" (dict "root" . "component" "postgres") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $pg }}
+  labels:
+    {{- include "hotel-booking.labels" (dict "root" . "component" "postgres") | nindent 4 }}
+spec:
+  replicas: {{ .Values.postgres.replicas }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "hotel-booking.selectorLabels" (dict "root" . "component" "postgres") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hotel-booking.selectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/postgres-configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/postgres-secret.yaml") . | sha256sum }}
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: postgres
+          image: {{ include "hotel-booking.imageRef" .Values.postgres.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.postgres.port }}
+              name: postgres
+          envFrom:
+            - configMapRef:
+                name: {{ $pg }}-config
+            - secretRef:
+                name: {{ $pg }}-secret
+          resources:
+            {{- toYaml .Values.postgres.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ .Values.postgres.user | quote }}, "-d", {{ .Values.postgres.database | quote }}]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ .Values.postgres.user | quote }}, "-d", {{ .Values.postgres.database | quote }}]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 4
+      volumes:
+        - name: data
+          {{- if .Values.postgres.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ $pg }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: init
+          configMap:
+            name: {{ $pg }}-init

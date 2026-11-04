@@ -1,0 +1,60 @@
+{{- $kafka := include "hotel-booking.componentName" (dict "root" . "component" "kafka") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $kafka }}
+  labels:
+    {{- include "hotel-booking.labels" (dict "root" . "component" "kafka") | nindent 4 }}
+spec:
+  replicas: {{ .Values.kafka.replicas }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "hotel-booking.selectorLabels" (dict "root" . "component" "kafka") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hotel-booking.selectorLabels" (dict "root" . "component" "kafka") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/kafka-configmap.yaml") . | sha256sum }}
+    spec:
+      # Без цього Kubernetes додає змінні KAFKA_PORT=tcp://..., які образ kafka сприймає як налаштування брокера
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: kafka
+          image: {{ include "hotel-booking.imageRef" .Values.kafka.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.kafka.port }}
+              name: kafka
+          envFrom:
+            - configMapRef:
+                name: {{ $kafka }}-config
+          resources:
+            {{- toYaml .Values.kafka.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+          readinessProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            failureThreshold: 5
+      volumes:
+        - name: data
+          {{- if .Values.kafka.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ $kafka }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

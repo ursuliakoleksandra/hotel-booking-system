@@ -1,11 +1,8 @@
-# DVO-L3-7F2A91
-# Збірка образів 1.0.0 та 1.1.0 і завантаження їх у minikube (тег latest не використовується).
-# Запуск з кореня репозиторію: bash scripts/build-and-load-images.sh
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-services="user-service hotel-management booking-service"
+services="user-service hotel-management booking-service ui"
 versions="1.0.0 1.1.0"
 
 for svc in $services; do
